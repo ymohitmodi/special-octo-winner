@@ -1,0 +1,58 @@
+# nyx-promoter configuration
+# Secrets (API keys, tokens) do NOT go here — they go in .env (see .env.example).
+
+project:
+  # The GitHub repo to promote
+  repo: ymohitmodi/upgraded-palm-tree
+  name: nyx
+  homepage: https://github.com/ymohitmodi/upgraded-palm-tree
+  # Short pitch used in every prompt so posts stay on-message.
+  # Edit this to describe what nyx actually does — it matters a lot for quality.
+  pitch: >
+    nyx — an open-source project on GitHub.
+
+ollama:
+  # Local Ollama (works with cloud models too: `ollama pull gpt-oss:120b-cloud`).
+  # To call ollama.com directly instead, set base_url: https://ollama.com
+  # and put OLLAMA_API_KEY in .env.
+  base_url: http://localhost:11434
+  model: gpt-oss:120b-cloud
+  temperature: 0.7
+
+content:
+  # Post an announcement when a new GitHub release is published.
+  release_announcements: true
+  # Post a "this week in nyx" digest built from recent commits.
+  weekly_digest: true
+  digest_weekday: Friday
+  digest_lookback_days: 7
+  # Hard cap on automated posts per day, across all platforms combined.
+  # Keep this low — steady beats spammy, and platforms punish bursts.
+  max_auto_posts_per_day: 3
+
+platforms:
+  # mode: auto  = publish without review
+  # mode: draft = write the post to drafts/ for you to review and post yourself
+  bluesky:
+    enabled: false
+    mode: auto
+  mastodon:
+    enabled: false
+    mode: auto
+    base_url: https://mastodon.social
+  devto:
+    enabled: false
+    mode: auto
+    tags: [opensource, github, programming]
+  discord:
+    enabled: false
+    mode: auto
+  telegram:
+    enabled: false
+    mode: auto
+  x:
+    enabled: false
+    mode: draft   # X free API tier is tight; flip to auto once your keys are set up
+  reddit:
+    enabled: false
+    mode: draft   # draft-only by design: automated Reddit self-promo gets banned
