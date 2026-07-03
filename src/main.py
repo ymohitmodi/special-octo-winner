@@ -16,7 +16,7 @@ import generate
 import github_source as gh
 import nyx_engine
 from config import load_config
-from publishers import PUBLISHERS
+from publishers import PUBLISHERS, THREAD_PUBLISHERS
 from state import State
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -76,6 +76,15 @@ def collect_items(cfg: dict, state: State, force_digest: bool, force_showcase: b
             except Exception as e:  # nyx not installed / run failed — skip gracefully
                 print(f"[showcase] skipped ({strength}): {e}", file=sys.stderr)
 
+        # Proof-of-work: nyx's audit ledger as a verifiable trust signal.
+        if sc.get("proof_of_work"):
+            if force_showcase or WEEKDAYS[date.today().weekday()] == sc.get("proof_weekday", "Thursday"):
+                run_id = f"{date.today().isoformat()}"
+                try:
+                    items.append(nyx_engine.proof_of_work(cfg, run_id))
+                except Exception as e:
+                    print(f"[proof] skipped: {e}", file=sys.stderr)
+
     return items
 
 
@@ -124,28 +133,46 @@ def main() -> int:
                 print(f"[{name}] daily auto-post cap ({cap}) reached, leaving {item['id']} for tomorrow")
                 continue
 
+            # Threads (reach lever) apply to nyx showcase/proof items on
+            # platforms that support reply-chains.
+            reach = cfg.get("reach", {})
+            use_thread = (
+                reach.get("threads")
+                and name in THREAD_PUBLISHERS
+                and item.get("strength")
+            )
+
             try:
+                limit = generate.PLATFORM_SPECS.get(name, {}).get("limit", 500)
                 if name == "devto":
                     title, body = generate.generate_article(cfg, item)
-                    text = f"{title}\n\n{body}"
+                    text, posts = f"{title}\n\n{body}", None
+                elif use_thread:
+                    posts = generate.generate_thread(
+                        cfg, name, item, reach.get("max_thread_posts", 4))
+                    posts = [nyx_engine.enforce_guardrails(item, p, limit) for p in posts]
+                    text = "\n\n---\n\n".join(posts)
                 else:
                     text = generate.generate_post(cfg, name, item)
-                # Enforce nyx showcase guardrails (e.g. no guaranteed-return claims).
-                limit = generate.PLATFORM_SPECS.get(name, {}).get("limit", len(text) + 40)
-                text = nyx_engine.enforce_guardrails(item, text, limit)
+                    text = nyx_engine.enforce_guardrails(item, text, limit)
+                    posts = None
             except Exception as e:
                 print(f"[{name}] generation failed for {item['id']}: {e}", file=sys.stderr)
                 failures += 1
                 continue
 
             if args.dry_run:
-                print(f"\n--- {name} / {item['id']} ({mode}) ---\n{text}\n")
+                kind = f"thread x{len(posts)}" if posts else "post"
+                print(f"\n--- {name} / {item['id']} ({mode}, {kind}) ---\n{text}\n")
                 continue
 
             try:
                 if mode == "auto":
-                    result = PUBLISHERS[name](pcfg, text, item)
-                    state.record_auto_post()
+                    if posts:
+                        result = THREAD_PUBLISHERS[name](pcfg, posts, item)
+                    else:
+                        result = PUBLISHERS[name](pcfg, text, item)
+                    state.record_auto_post()  # a thread counts as one item
                     print(f"[{name}] published {item['id']}: {result}")
                 else:
                     path = write_draft(name, item, text)

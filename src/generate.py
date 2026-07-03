@@ -115,6 +115,38 @@ def generate_post(cfg: dict, platform: str, item: dict) -> str:
     return text
 
 
+def generate_thread(cfg: dict, platform: str, item: dict, max_posts: int = 4) -> list[str]:
+    """Turn a rich item into a short reply-chain thread (reach lever for X/Bluesky).
+
+    Returns a list of posts, each within the platform limit. The first is a
+    scroll-stopping hook; the last carries the call to action + link.
+    """
+    spec = PLATFORM_SPECS[platform]
+    user = (
+        f"Platform: {platform}. Write a thread of 2-{max_posts} posts, each STRICTLY "
+        f"under {spec['limit']} characters. Style: {spec['style']}\n"
+        "Post 1: a scroll-stopping hook (no link, no 'a thread 🧵' cliché). "
+        "Middle posts: the concrete substance from the material. "
+        "Final post: a clear call to action (star / try the repo) WITH the link.\n"
+        "Separate posts with a line containing only '---'. Output only the posts.\n\n"
+        f"About this {item['kind']}:\nTitle: {item['title']}\nMaterial:\n{item['context']}\n"
+        f"{_showcase_framing(item)}"
+        f"Link (final post only): {item.get('url', cfg['project']['homepage'])}\n"
+    )
+    text = _chat(cfg, _system_prompt(cfg), user)
+    parts = [p.strip() for p in re.split(r"(?m)^\s*-{3,}\s*$", text) if p.strip()]
+    posts = []
+    for i, p in enumerate(parts[:max_posts]):
+        if len(p) > spec["limit"]:
+            p = p[: spec["limit"] - 1] + "…"
+        posts.append(p)
+    # Guarantee the link survives in the final post.
+    link = item.get("url", cfg["project"]["homepage"])
+    if posts and link not in posts[-1] and len(posts[-1]) + len(link) + 1 <= spec["limit"]:
+        posts[-1] = f"{posts[-1]} {link}"
+    return posts or [generate_post(cfg, platform, item)]
+
+
 def generate_article(cfg: dict, item: dict) -> tuple[str, str]:
     """Long-form markdown article for dev.to. Returns (title, body_markdown)."""
     user = (

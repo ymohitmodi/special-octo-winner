@@ -43,7 +43,28 @@ Configure it under `showcase:` in `config.yaml` (point `nyx_dir` at your nyx
 checkout, list the intents/objectives to demo). It uses your Ollama Cloud key
 when set, so the posted artifacts are real model output — not mock data.
 
-Preview a showcase without posting:
+### Proof of autonomous work (the receipts)
+
+On its own weekday the promoter reads nyx's **tamper-evident, hash-chained
+audit ledger** and posts a verifiable summary: how many constitutional gates
+passed, how many were blocked, across how many specialized agents, and whether
+the hash chain verifies intact. This is nyx's strongest trust signal — not a
+claim about autonomy, a cryptographic record of it. Enabled under
+`showcase.proof_of_work`.
+
+### Reach: nyx-written threads
+
+nyx showcases and proof-of-work posts go out as native **reply-chain threads**
+on X and Bluesky (single posts elsewhere) — a hook, the substance, then a call
+to action with the link. Threads reach far more people than one post, and a
+thread counts as a single item against the daily cap. Toggle under `reach:`.
+
+Reach here means *legitimate distribution only* — threads, discoverability,
+posting real work. There is deliberately no follow/unfollow botting, mass DMing,
+or fake engagement; those get accounts suppressed, which is the opposite of the
+goal.
+
+Preview everything without posting:
 
 ```powershell
 .\scripts\run.ps1 --dry-run --force-showcase
@@ -80,8 +101,8 @@ Then:
 | Bluesky, Mastodon | auto | Free open APIs, dev-heavy audiences |
 | dev.to | auto | Long-form articles, good SEO for the repo |
 | Discord, Telegram | auto | Your own community channels |
-| X / Twitter | draft | Free API tier is ~500 posts/mo; flip to `auto` in config once keys work |
-| Reddit | draft only | Automated self-promo violates most subreddit rules — always post by hand |
+| X / Twitter | auto | Fully autonomous (incl. threads); free API tier caps ~500 posts/mo |
+| Reddit | draft only | Automated self-promo violates most subreddit rules and gets you banned — kept draft on purpose |
 
 ## What this deliberately does NOT do
 

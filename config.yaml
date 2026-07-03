@@ -45,6 +45,12 @@ showcase:
   # Safety: software builds run supervised and are HELD (never auto-shipped);
   # investing is read-only analysis; nothing here mutates external state.
   timeout_seconds: 600
+
+  # Proof-of-work post: turn nyx's tamper-evident audit ledger into a
+  # "here's what nyx actually did, chain-verified" post. Strongest trust signal.
+  proof_of_work: true
+  proof_weekday: Thursday
+  ledger_tail: 60
   # Intents/objectives nyx will actually execute for the demo (rotated).
   software_intents:
     - "Add a token-bucket rate limiter to the public API"
@@ -53,6 +59,14 @@ showcase:
   advisor_objectives:
     - "Assemble EB-1A evidence of extraordinary ability for a senior AI engineer"
     - "Plan a 90-day path to a first paying customer for a solo SaaS"
+
+# Reach optimization — legitimate distribution, never fake engagement.
+reach:
+  # Post nyx showcases & proof-of-work as native reply-chain THREADS on
+  # platforms that support them (X, Bluesky). Threads reach far more people
+  # than a single post. Counts as one item against the daily cap.
+  threads: true
+  max_thread_posts: 4
 
 platforms:
   # mode: auto  = publish without review
@@ -76,7 +90,7 @@ platforms:
     mode: auto
   x:
     enabled: false
-    mode: draft   # X free API tier is tight; flip to auto once your keys are set up
+    mode: auto    # fully autonomous; note the free API tier caps ~500 posts/mo
   reddit:
     enabled: false
     mode: draft   # draft-only by design: automated Reddit self-promo gets banned
