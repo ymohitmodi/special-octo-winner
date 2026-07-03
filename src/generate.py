@@ -27,6 +27,14 @@ PLATFORM_SPECS = {
         "limit": 4000,
         "style": "Channel announcement. Plain text, short paragraphs.",
     },
+    "linkedin": {
+        "limit": 3000,
+        "style": (
+            "Professional but human — no buzzword salad. A strong first line (it's the "
+            "hook before 'see more'), then short paragraphs and a clear takeaway. "
+            "1-3 relevant hashtags at the end are fine."
+        ),
+    },
     "reddit": {
         "limit": 6000,
         "style": (

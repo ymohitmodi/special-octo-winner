@@ -101,6 +101,7 @@ Then:
 | Bluesky, Mastodon | auto | Free open APIs, dev-heavy audiences |
 | dev.to | auto | Long-form articles, good SEO for the repo |
 | Discord, Telegram | auto | Your own community channels |
+| LinkedIn | auto | Official Posts API; strong reach for a technical project (profile or company page) |
 | X / Twitter | auto | Fully autonomous (incl. threads); free API tier caps ~500 posts/mo |
 | Reddit | draft only | Automated self-promo violates most subreddit rules and gets you banned — kept draft on purpose |
 

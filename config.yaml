@@ -88,6 +88,11 @@ platforms:
   telegram:
     enabled: false
     mode: auto
+  linkedin:
+    enabled: false
+    mode: auto
+    # Bump when LinkedIn rotates its monthly API version (LinkedIn-Version header).
+    api_version: "202405"
   x:
     enabled: false
     mode: auto    # fully autonomous; note the free API tier caps ~500 posts/mo

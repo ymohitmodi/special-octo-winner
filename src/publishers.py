@@ -173,6 +173,47 @@ def publish_telegram(pcfg: dict, text: str, item: dict) -> str:
     return "posted"
 
 
+def publish_linkedin(pcfg: dict, text: str, item: dict) -> str:
+    """Post to a LinkedIn profile or organization page via the Posts API.
+
+    Needs an OAuth2 token with `w_member_social` (profile) or the org-admin
+    scopes (page). The author URN can be set explicitly (LINKEDIN_AUTHOR_URN,
+    e.g. urn:li:organization:123 for a company page); otherwise we resolve the
+    member URN from the OpenID `userinfo` endpoint.
+    """
+    token = env("LINKEDIN_ACCESS_TOKEN", required=True)
+    version = pcfg.get("api_version", "202405")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": version,
+        "Content-Type": "application/json",
+    }
+
+    author = env("LINKEDIN_AUTHOR_URN")
+    if not author:
+        who = requests.get("https://api.linkedin.com/v2/userinfo", headers=headers, timeout=TIMEOUT)
+        who.raise_for_status()
+        author = f"urn:li:person:{who.json()['sub']}"
+
+    body = {
+        "author": author,
+        "commentary": text,
+        "visibility": "PUBLIC",
+        "distribution": {
+            "feedDistribution": "MAIN_FEED",
+            "targetEntities": [],
+            "thirdPartyDistributionChannels": [],
+        },
+        "lifecycleState": "PUBLISHED",
+        "isReshareDisabledByAuthor": False,
+    }
+    r = requests.post("https://api.linkedin.com/rest/posts", headers=headers,
+                      json=body, timeout=TIMEOUT)
+    r.raise_for_status()
+    return r.headers.get("x-restli-id", "posted")
+
+
 def publish_x(pcfg: dict, text: str, item: dict) -> str:
     auth = OAuth1(
         env("X_CONSUMER_KEY", required=True),
@@ -204,6 +245,7 @@ PUBLISHERS = {
     "devto": publish_devto,
     "discord": publish_discord,
     "telegram": publish_telegram,
+    "linkedin": publish_linkedin,
     "x": publish_x,
     "reddit": publish_reddit,
 }
