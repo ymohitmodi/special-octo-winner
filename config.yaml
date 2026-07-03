@@ -30,6 +30,30 @@ content:
   # Keep this low — steady beats spammy, and platforms punish bursts.
   max_auto_posts_per_day: 3
 
+# Showcase posts: actually RUN nyx in a domain it's strong at and post the
+# real output. This is the highest-signal content — people follow a project
+# when they see it work, not when they're told it works.
+showcase:
+  enabled: true
+  # Path to the nyx repo on this machine (where `python -m nyx` runs).
+  nyx_dir: ../upgraded-palm-tree
+  # How many showcase runs per week, and which of nyx's strengths to rotate
+  # through. Each run drives nyx live (uses your Ollama key if set) and posts
+  # its genuine artifact. Order is the rotation order.
+  weekday: Tuesday
+  strengths: [software, investing, advisor]
+  # Safety: software builds run supervised and are HELD (never auto-shipped);
+  # investing is read-only analysis; nothing here mutates external state.
+  timeout_seconds: 600
+  # Intents/objectives nyx will actually execute for the demo (rotated).
+  software_intents:
+    - "Add a token-bucket rate limiter to the public API"
+    - "Add structured request logging with redaction of secrets"
+    - "Add a health-check endpoint with dependency probes"
+  advisor_objectives:
+    - "Assemble EB-1A evidence of extraordinary ability for a senior AI engineer"
+    - "Plan a 90-day path to a first paying customer for a solo SaaS"
+
 platforms:
   # mode: auto  = publish without review
   # mode: draft = write the post to drafts/ for you to review and post yourself

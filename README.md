@@ -17,6 +17,38 @@ Once a day (Windows Task Scheduler):
 4. **Never double-posts** (state tracking) and **rate-limits itself**
    (default: max 3 automated posts/day across all platforms).
 
+## The best content: nyx showcasing itself
+
+The highest-signal posts don't *describe* nyx — they *are* nyx working. On its
+scheduled day the promoter runs nyx in one of the domains it's genuinely strong
+at and posts the real artifact, rotating week to week:
+
+| nyx strength | What it runs | What gets posted |
+|--------------|--------------|------------------|
+| **Software** | `nyx build "<intent>"` (supervised — **held for approval, never auto-shipped**) | The full gated SDLC pipeline running end-to-end, with audited run metrics and the governance gate holding the deploy |
+| **Value investing** | `nyx backtest` (read-only analysis) | nyx screening for deep value, and its Constitution *auto-rejecting* a "guaranteed returns" memo — governance as the hook |
+| **Advisor** | `nyx run "<EB-1 / solo-SaaS goal>"` (1 bounded cycle) | An ambiguous goal decomposed into concrete gated deliverables |
+
+Two hard safety rules are baked in and shouldn't be relaxed:
+
+- **The approval gate is never disabled.** Software showcases run supervised and
+  end in `HELD` — nyx demonstrates the pipeline without shipping anything
+  unattended. That the build *waits for a human* is part of the story.
+- **No performance claims, ever.** Investing/advisor posts pass through a
+  guardrail that rejects any text implying guaranteed or risk-free returns and
+  appends a "Not financial advice" disclaimer. This mirrors nyx's own
+  Constitution, which forbids promising returns.
+
+Configure it under `showcase:` in `config.yaml` (point `nyx_dir` at your nyx
+checkout, list the intents/objectives to demo). It uses your Ollama Cloud key
+when set, so the posted artifacts are real model output — not mock data.
+
+Preview a showcase without posting:
+
+```powershell
+.\scripts\run.ps1 --dry-run --force-showcase
+```
+
 ## Setup (Windows 11)
 
 Prereqs: [Python 3.11+](https://python.org), [Ollama](https://ollama.com) with a
@@ -62,9 +94,10 @@ through official APIs, on accounts you own.
 ## Handy commands
 
 ```powershell
-.\scripts\run.ps1 --dry-run        # preview today's posts, publish nothing
-.\scripts\run.ps1 --force-digest   # build the weekly digest right now
-.\scripts\run.ps1                  # normal run (what the scheduled task does)
+.\scripts\run.ps1 --dry-run          # preview today's posts, publish nothing
+.\scripts\run.ps1 --force-digest     # build the weekly digest right now
+.\scripts\run.ps1 --force-showcase   # run a nyx self-showcase right now
+.\scripts\run.ps1                    # normal run (what the scheduled task does)
 ```
 
 State lives in `state.json` (delete it to allow re-posting), drafts in `drafts/`.

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import generate
 import github_source as gh
+import nyx_engine
 from config import load_config
 from publishers import PUBLISHERS
 from state import State
@@ -24,7 +25,7 @@ DRAFTS = ROOT / "drafts"
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
-def collect_items(cfg: dict, state: State, force_digest: bool) -> list[dict]:
+def collect_items(cfg: dict, state: State, force_digest: bool, force_showcase: bool) -> list[dict]:
     """Decide what there is to talk about today. Each item posts at most once per platform."""
     repo = cfg["project"]["repo"]
     items = []
@@ -59,6 +60,22 @@ def collect_items(cfg: dict, state: State, force_digest: bool) -> list[dict]:
             else:
                 print(f"[digest] no commits in the last {days} days, skipping")
 
+    # Showcase: drive nyx itself in one of its strength domains and post the
+    # real artifact. Runs on its scheduled weekday (or when --force-showcase).
+    sc = cfg.get("showcase", {})
+    if sc.get("enabled"):
+        want_day = sc.get("weekday", "Tuesday")
+        if force_showcase or WEEKDAYS[date.today().weekday()] == want_day:
+            strengths = sc.get("strengths") or ["software"]
+            # Rotate strength week-by-week so each gets airtime.
+            week = date.today().isocalendar()[1]
+            strength = strengths[week % len(strengths)]
+            run_id = f"{date.today().isocalendar()[0]}w{week}-{strength}"
+            try:
+                items.append(nyx_engine.build_showcase(cfg, strength, run_id))
+            except Exception as e:  # nyx not installed / run failed — skip gracefully
+                print(f"[showcase] skipped ({strength}): {e}", file=sys.stderr)
+
     return items
 
 
@@ -77,13 +94,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate and publish posts about the project")
     parser.add_argument("--dry-run", action="store_true", help="print posts, don't publish or save state")
     parser.add_argument("--force-digest", action="store_true", help="build the digest regardless of weekday")
+    parser.add_argument("--force-showcase", action="store_true", help="run a nyx showcase regardless of weekday")
     args = parser.parse_args()
 
     cfg = load_config()
     state = State.load()
     cap = cfg["content"].get("max_auto_posts_per_day", 3)
 
-    items = collect_items(cfg, state, args.force_digest)
+    items = collect_items(cfg, state, args.force_digest, args.force_showcase)
     if not items:
         print("Nothing new to post about.")
         return 0
@@ -112,6 +130,9 @@ def main() -> int:
                     text = f"{title}\n\n{body}"
                 else:
                     text = generate.generate_post(cfg, name, item)
+                # Enforce nyx showcase guardrails (e.g. no guaranteed-return claims).
+                limit = generate.PLATFORM_SPECS.get(name, {}).get("limit", len(text) + 40)
+                text = nyx_engine.enforce_guardrails(item, text, limit)
             except Exception as e:
                 print(f"[{name}] generation failed for {item['id']}: {e}", file=sys.stderr)
                 failures += 1

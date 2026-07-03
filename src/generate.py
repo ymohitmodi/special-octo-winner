@@ -73,6 +73,23 @@ def _system_prompt(cfg: dict) -> str:
     )
 
 
+def _showcase_framing(item: dict) -> str:
+    if not item.get("strength"):
+        return ""
+    frame = (
+        "\nThis is a SHOWCASE: nyx actually executed this just now. Lead with the fact "
+        "that nyx *did* it autonomously — show, don't tell. Do not invent tickers, "
+        "returns, percentages, or metrics beyond what is in the material.\n"
+    )
+    if "no_return_promise" in item.get("guardrails", []):
+        frame += (
+            "CRITICAL: never promise or imply guaranteed/risk-free returns or profits, "
+            "and do not present any figure as investment advice. The angle is the "
+            "autonomous process and constitutional governance, not performance.\n"
+        )
+    return frame
+
+
 def generate_post(cfg: dict, platform: str, item: dict) -> str:
     spec = PLATFORM_SPECS[platform]
     user = (
@@ -80,6 +97,7 @@ def generate_post(cfg: dict, platform: str, item: dict) -> str:
         f"Write one post about this {item['kind']}:\n"
         f"Title: {item['title']}\n"
         f"Material:\n{item['context']}\n"
+        f"{_showcase_framing(item)}"
     )
     if item.get("url"):
         user += f"Link to include: {item['url']}\n"
