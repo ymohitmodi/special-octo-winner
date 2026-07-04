@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 state.json
 drafts/
+nyx_outbox/
+!examples/nyx_outbox/

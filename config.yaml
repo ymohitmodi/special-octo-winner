@@ -60,6 +60,24 @@ showcase:
     - "Assemble EB-1A evidence of extraordinary ability for a senior AI engineer"
     - "Plan a 90-day path to a first paying customer for a solo SaaS"
 
+# Generic ingestion of anything nyx auto-generates. nyx (running autonomously)
+# drops marketing-ready artifacts into this directory and the promoter markets
+# them — no code changes per content type. See docs/OUTBOX.md for the schema.
+nyx_outbox:
+  enabled: true
+  dir: nyx_outbox           # where nyx writes artifacts (json / md / txt)
+  archive: true             # move published artifacts out of the way
+  archive_dir: nyx_outbox/published
+
+# Ordered list of content sources to run. Omit this key to use the default set
+# (github_release, commit_digest, nyx_showcase, nyx_proof, nyx_outbox). List
+# them explicitly to reorder, disable, or run multiple outboxes:
+#   sources:
+#     - type: nyx_outbox
+#       dir: nyx_outbox/investing
+#     - type: nyx_showcase
+#     - type: github_release
+
 # Reach optimization — legitimate distribution, never fake engagement.
 reach:
   # Post nyx showcases & proof-of-work as native reply-chain THREADS on

@@ -70,6 +70,47 @@ Preview everything without posting:
 .\scripts\run.ps1 --dry-run --force-showcase
 ```
 
+## Generic: auto-marketing anything nyx produces
+
+The showcases above are built-in, but the pipeline is **content-source driven**,
+so it markets *any* auto-generated output from nyx without new code. nyx (running
+autonomously) drops a marketing-ready artifact into an **outbox** directory, and
+the promoter discovers it, writes platform-tailored posts, and publishes:
+
+```
+nyx produces output ──▶ nyx_outbox/*.{json,md,txt} ──▶ generate → publish → archive
+```
+
+An artifact is just a file. Minimal example (`nyx_outbox/note.md`):
+
+```markdown
+---
+kind: market note
+strength: investing
+guardrails: [no_return_promise]
+platforms: [bluesky, linkedin]
+thread: true
+---
+The auto-generated content the post is written from …
+```
+
+Or nyx emits one directly from its own code:
+
+```python
+from outbox import write_artifact
+write_artifact("nyx_outbox", kind="shipped feature", title=headline,
+               context=summary, strength="software")
+```
+
+Each artifact can target a subset of platforms, opt in/out of threading, and
+declare guardrails — all enforced. Published artifacts are archived to
+`nyx_outbox/published/`. Full contract in [docs/OUTBOX.md](docs/OUTBOX.md).
+
+Sources are configured (and reorderable) under `sources:` in `config.yaml`;
+adding a brand-new *kind* of source is a few lines in `src/sources.py` via the
+`@source("name")` registry. Built-in sources: `github_release`, `commit_digest`,
+`nyx_showcase`, `nyx_proof`, `nyx_outbox`.
+
 ## Setup (Windows 11)
 
 Prereqs: [Python 3.11+](https://python.org), [Ollama](https://ollama.com) with a

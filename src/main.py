@@ -13,8 +13,9 @@ from datetime import date
 from pathlib import Path
 
 import generate
-import github_source as gh
 import nyx_engine
+import outbox
+import sources
 from config import load_config
 from publishers import PUBLISHERS, THREAD_PUBLISHERS
 from state import State
@@ -22,70 +23,11 @@ from state import State
 ROOT = Path(__file__).resolve().parent.parent
 DRAFTS = ROOT / "drafts"
 
-WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-
 
 def collect_items(cfg: dict, state: State, force_digest: bool, force_showcase: bool) -> list[dict]:
-    """Decide what there is to talk about today. Each item posts at most once per platform."""
-    repo = cfg["project"]["repo"]
-    items = []
-
-    if cfg["content"].get("release_announcements"):
-        rel = gh.latest_release(repo)
-        if rel and not rel.get("draft") and not rel.get("prerelease"):
-            tag = rel.get("tag_name", "")
-            item_id = f"release:{tag}"
-            items.append({
-                "id": item_id,
-                "kind": "new release",
-                "title": rel.get("name") or tag,
-                "context": (rel.get("body") or "(no release notes)")[:4000],
-                "url": rel.get("html_url"),
-            })
-
-    if cfg["content"].get("weekly_digest"):
-        digest_day = cfg["content"].get("digest_weekday", "Friday")
-        if force_digest or WEEKDAYS[date.today().weekday()] == digest_day:
-            days = cfg["content"].get("digest_lookback_days", 7)
-            commits = gh.recent_commits(repo, days)
-            summary = gh.commit_summary(commits)
-            if summary:
-                items.append({
-                    "id": f"digest:{date.today().isoformat()}",
-                    "kind": f"development digest (last {days} days)",
-                    "title": f"This week in {cfg['project']['name']}",
-                    "context": summary,
-                    "url": cfg["project"]["homepage"],
-                })
-            else:
-                print(f"[digest] no commits in the last {days} days, skipping")
-
-    # Showcase: drive nyx itself in one of its strength domains and post the
-    # real artifact. Runs on its scheduled weekday (or when --force-showcase).
-    sc = cfg.get("showcase", {})
-    if sc.get("enabled"):
-        want_day = sc.get("weekday", "Tuesday")
-        if force_showcase or WEEKDAYS[date.today().weekday()] == want_day:
-            strengths = sc.get("strengths") or ["software"]
-            # Rotate strength week-by-week so each gets airtime.
-            week = date.today().isocalendar()[1]
-            strength = strengths[week % len(strengths)]
-            run_id = f"{date.today().isocalendar()[0]}w{week}-{strength}"
-            try:
-                items.append(nyx_engine.build_showcase(cfg, strength, run_id))
-            except Exception as e:  # nyx not installed / run failed — skip gracefully
-                print(f"[showcase] skipped ({strength}): {e}", file=sys.stderr)
-
-        # Proof-of-work: nyx's audit ledger as a verifiable trust signal.
-        if sc.get("proof_of_work"):
-            if force_showcase or WEEKDAYS[date.today().weekday()] == sc.get("proof_weekday", "Thursday"):
-                run_id = f"{date.today().isoformat()}"
-                try:
-                    items.append(nyx_engine.proof_of_work(cfg, run_id))
-                except Exception as e:
-                    print(f"[proof] skipped: {e}", file=sys.stderr)
-
-    return items
+    """Gather items from every configured source. Each posts at most once per platform."""
+    ctx = sources.Ctx(today=date.today(), force_digest=force_digest, force_showcase=force_showcase)
+    return sources.collect(cfg, ctx)
 
 
 def write_draft(platform: str, item: dict, text: str) -> Path:
@@ -123,9 +65,17 @@ def main() -> int:
         print("No platforms enabled in config.yaml — enable at least one.")
         return 0
 
+    reach = cfg.get("reach", {})
     failures = 0
     for item in items:
-        for name, pcfg in enabled.items():
+        # An item may target a subset of platforms (self-describing, generic).
+        targets = item.get("platforms")
+        item_platforms = {
+            n: p for n, p in enabled.items()
+            if not targets or n in targets
+        }
+        published_any = False
+        for name, pcfg in item_platforms.items():
             if state.already_done(item["id"], name):
                 continue
             mode = pcfg.get("mode", "draft")
@@ -133,14 +83,13 @@ def main() -> int:
                 print(f"[{name}] daily auto-post cap ({cap}) reached, leaving {item['id']} for tomorrow")
                 continue
 
-            # Threads (reach lever) apply to nyx showcase/proof items on
-            # platforms that support reply-chains.
-            reach = cfg.get("reach", {})
-            use_thread = (
-                reach.get("threads")
-                and name in THREAD_PUBLISHERS
-                and item.get("strength")
-            )
+            # Threads (reach lever) apply on reply-chain platforms. An item can
+            # opt in/out explicitly via `thread`; otherwise nyx strength items
+            # thread by default when reach.threads is on.
+            want_thread = item.get("thread")
+            if want_thread is None:
+                want_thread = bool(reach.get("threads") and item.get("strength"))
+            use_thread = want_thread and name in THREAD_PUBLISHERS
 
             try:
                 limit = generate.PLATFORM_SPECS.get(name, {}).get("limit", 500)
@@ -179,9 +128,17 @@ def main() -> int:
                     print(f"[{name}] draft written for {item['id']}: {path}")
                 state.mark_done(item["id"], name)
                 state.save()
+                published_any = True
             except Exception as e:
                 print(f"[{name}] publish failed for {item['id']}: {e}", file=sys.stderr)
                 failures += 1
+
+        # Archive fully-processed outbox artifacts so nyx's outbox stays clean.
+        if published_any and item.get("_source_file") and cfg.get("nyx_outbox", {}).get("archive"):
+            try:
+                outbox.archive(item, cfg["nyx_outbox"].get("archive_dir", "nyx_outbox/published"))
+            except Exception as e:
+                print(f"[outbox] archive failed for {item['id']}: {e}", file=sys.stderr)
 
     return 1 if failures else 0
 
