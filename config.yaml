@@ -1,0 +1,119 @@
+# nyx-promoter configuration
+# Secrets (API keys, tokens) do NOT go here — they go in .env (see .env.example).
+
+project:
+  # The GitHub repo to promote
+  repo: ymohitmodi/upgraded-palm-tree
+  name: nyx
+  homepage: https://github.com/ymohitmodi/upgraded-palm-tree
+  # Short pitch used in every prompt so posts stay on-message.
+  # Edit this to describe what nyx actually does — it matters a lot for quality.
+  pitch: >
+    nyx — an open-source project on GitHub.
+
+ollama:
+  # Local Ollama (works with cloud models too: `ollama pull gpt-oss:120b-cloud`).
+  # To call ollama.com directly instead, set base_url: https://ollama.com
+  # and put OLLAMA_API_KEY in .env.
+  base_url: http://localhost:11434
+  model: gpt-oss:120b-cloud
+  temperature: 0.7
+
+content:
+  # Post an announcement when a new GitHub release is published.
+  release_announcements: true
+  # Post a "this week in nyx" digest built from recent commits.
+  weekly_digest: true
+  digest_weekday: Friday
+  digest_lookback_days: 7
+  # Hard cap on automated posts per day, across all platforms combined.
+  # Keep this low — steady beats spammy, and platforms punish bursts.
+  max_auto_posts_per_day: 3
+
+# Showcase posts: actually RUN nyx in a domain it's strong at and post the
+# real output. This is the highest-signal content — people follow a project
+# when they see it work, not when they're told it works.
+showcase:
+  enabled: true
+  # Path to the nyx repo on this machine (where `python -m nyx` runs).
+  nyx_dir: ../upgraded-palm-tree
+  # How many showcase runs per week, and which of nyx's strengths to rotate
+  # through. Each run drives nyx live (uses your Ollama key if set) and posts
+  # its genuine artifact. Order is the rotation order.
+  weekday: Tuesday
+  strengths: [software, investing, advisor]
+  # Safety: software builds run supervised and are HELD (never auto-shipped);
+  # investing is read-only analysis; nothing here mutates external state.
+  timeout_seconds: 600
+
+  # Proof-of-work post: turn nyx's tamper-evident audit ledger into a
+  # "here's what nyx actually did, chain-verified" post. Strongest trust signal.
+  proof_of_work: true
+  proof_weekday: Thursday
+  ledger_tail: 60
+  # Intents/objectives nyx will actually execute for the demo (rotated).
+  software_intents:
+    - "Add a token-bucket rate limiter to the public API"
+    - "Add structured request logging with redaction of secrets"
+    - "Add a health-check endpoint with dependency probes"
+  advisor_objectives:
+    - "Assemble EB-1A evidence of extraordinary ability for a senior AI engineer"
+    - "Plan a 90-day path to a first paying customer for a solo SaaS"
+
+# Generic ingestion of anything nyx auto-generates. nyx (running autonomously)
+# drops marketing-ready artifacts into this directory and the promoter markets
+# them — no code changes per content type. See docs/OUTBOX.md for the schema.
+nyx_outbox:
+  enabled: true
+  dir: nyx_outbox           # where nyx writes artifacts (json / md / txt)
+  archive: true             # move published artifacts out of the way
+  archive_dir: nyx_outbox/published
+
+# Ordered list of content sources to run. Omit this key to use the default set
+# (github_release, commit_digest, nyx_showcase, nyx_proof, nyx_outbox). List
+# them explicitly to reorder, disable, or run multiple outboxes:
+#   sources:
+#     - type: nyx_outbox
+#       dir: nyx_outbox/investing
+#     - type: nyx_showcase
+#     - type: github_release
+
+# Reach optimization — legitimate distribution, never fake engagement.
+reach:
+  # Post nyx showcases & proof-of-work as native reply-chain THREADS on
+  # platforms that support them (X, Bluesky). Threads reach far more people
+  # than a single post. Counts as one item against the daily cap.
+  threads: true
+  max_thread_posts: 4
+
+platforms:
+  # mode: auto  = publish without review
+  # mode: draft = write the post to drafts/ for you to review and post yourself
+  bluesky:
+    enabled: false
+    mode: auto
+  mastodon:
+    enabled: false
+    mode: auto
+    base_url: https://mastodon.social
+  devto:
+    enabled: false
+    mode: auto
+    tags: [opensource, github, programming]
+  discord:
+    enabled: false
+    mode: auto
+  telegram:
+    enabled: false
+    mode: auto
+  linkedin:
+    enabled: false
+    mode: auto
+    # Bump when LinkedIn rotates its monthly API version (LinkedIn-Version header).
+    api_version: "202405"
+  x:
+    enabled: false
+    mode: auto    # fully autonomous; note the free API tier caps ~500 posts/mo
+  reddit:
+    enabled: false
+    mode: draft   # draft-only by design: automated Reddit self-promo gets banned

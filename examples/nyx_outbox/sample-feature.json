@@ -1,0 +1,8 @@
+{
+  "id": "feature-usage-billing-2026-07",
+  "kind": "shipped feature",
+  "title": "nyx shipped a usage-based billing dashboard, end to end",
+  "context": "Given the intent 'add a usage-based billing dashboard with Stripe metering', nyx's dark factory explored the codebase, designed the schema, implemented metering, passed a security review gate, wrote and ran acceptance tests, and produced a reversible release plan — all constitution-gated and written to the audit ledger.",
+  "strength": "software",
+  "platforms": ["x", "bluesky", "linkedin", "discord"]
+}
